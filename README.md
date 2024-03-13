@@ -16,7 +16,7 @@ You may need to install additional packages for the scripts, which done by enter
 
 ## Running Experiments
 
-Please see `code\` folder for R scripts to replicate experiements. The `scripts\` folder contains bash scripts for use with a computing cluster.
+Please see `code\` folder for R scripts to replicate experiments. The `scripts\` folder contains bash scripts for use with a computing cluster.
 
 ## Data
 
@@ -28,3 +28,4 @@ Due to data disclosure agreements, we have not provided data for some of the exp
 - `RLdata10000`: Available within the `RecordLinkage` package in CRAN. 
 - `FEBRL4`: Available from the `recordlinkage` [Python package](https://recordlinkage.readthedocs.io/en/latest/ref-datasets.html) and stored in `data/` directory. 
 
+Code to run experiments on restricted data is located in the `code_restricted_data` folder
