@@ -1,28 +1,19 @@
 library(vabl)
 library(glue)
 
-k = as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
+k <-  as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 n1_vals <- c(seq(500, by = 500, length.out = 9), seq(5000, by = 5000, length.out = 20))
 n1 <- n2 <- n1_vals[k]
 total_overlap <- n2/2
-S = 1000
-burn = S * .1
+S <- 1000
+burn <- S * .1
 
 Z_true <- rep(0, n2)
 Z_true[1:total_overlap] <- 1:total_overlap
 
-show_progress <- T
-fast = F
-R <- NULL
-all_patterns <- T
-
 m <- rep(c(.95, .05), 5)
-
-# u <- c(.99, .01, .99, .01,
-#        1 - 1/30, 1/30, 1 - 1/12, 1/12, 1 - 1/15, 1/15)
 u <- c(.01, .99, .01, .99,
        1/30, 1- 1/30, 1/12, 1 - 1/12, 1/15, 1 - 1/15)
-
 levels <- c(2, 2, 2, 2, 2)
 
 possible_batches <- 1:200
@@ -53,7 +44,6 @@ for (i in seq_along(batch_sizes)){
   cd <- simulate_comparisons(m, u, levels, n1, batch_sizes[i], overlap_vec[i],
                              previous_matches)
   hash_list[[i]] <- hash_comparisons(cd, all_patterns = T)
-  #rm(cd)
   gc()
   previous_matches <- previous_matches + overlap_vec[i]
 }
@@ -99,15 +89,6 @@ vabl_df <- data.frame(n1 = n1,
                       time = seconds,
                       iterations = out$t,
                       method = "vabl")
-
-# ptm <- proc.time()
-# out <- vi_efficient(hash, b_init = F)
-# seconds <- (proc.time() - ptm)[3]
-# result <- vi_estimate_links(out, hash, resolve = F)
-# vabl_no_init_df <- data.frame(n1 = n1,
-#                       time = seconds,
-#                       iterations = out$t,
-#                       method = "vabl_no_init")
 
 
 ptm <- proc.time()

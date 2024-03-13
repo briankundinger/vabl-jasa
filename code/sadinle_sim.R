@@ -6,29 +6,17 @@ library(purrr)
 library(readr)
 library(BRL)
 
-taskID <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
-i = taskID
+i <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 set.seed(41)
 files <- list.files(path = "data/sadinle_sim_data/", full.names = T)
 
-m_prior = 1
-u_prior = 1
-alpha = 1
-beta = 1
-S = 1000
-burn = 100
-show_progress = F
-fast = F
-R = NULL
-all_patterns = TRUE
-tmax= 200
-threshold = 1e-6
-resolve = T
+S <-  1000
+burn <-  100
+all_patterns <- TRUE
 
 
 overlap_vals <- c(50, 250, 450)
 
-fastlink_samps <- matrix(NA, nrow = 3, ncol = 6)
 vabl_samps <- matrix(NA, nrow = 3, ncol = 6)
 vabl_partial_samps <- matrix(NA, nrow = 3, ncol = 6)
 
@@ -57,10 +45,6 @@ for(j in seq_along(overlap_vals)){
 
   n1 <- 500
   n2 <- 500
-  #overlap <- n2/2
-
-  # Ztrue <- n1 + 1:n2
-  # Ztrue[1:overlap] <- 1:overlap
 
   Ztrue <- rep(0, n2)
   Ztrue[1:overlap] <- 1:overlap
@@ -100,7 +84,7 @@ for(j in seq_along(overlap_vals)){
   eval[1] <- sum(result$Z_hat == Ztrue & Ztrue == 0) / (sum(result$Z_hat == 0))
   vabl_partial_samps[j, ] <- c(eval, RR, elapsed[3], overlap)
 
-  #svi
+  # svabl
   ptm <- proc.time()
   out <- svabl(hash, threshold, tmax, B = 100, k = 1)
   elapsed <- proc.time() - ptm
@@ -158,9 +142,6 @@ for(j in seq_along(overlap_vals)){
   eval <- evaluate_links(Z_hat, Ztrue, n1)
   eval[1] <- sum(Z_hat == Ztrue & Ztrue == 0) / (sum(Z_hat == 0))
   sad_partial_samps[j, ] <- c(eval, RR, elapsed[3], overlap)
-
-  #  print(i)
-  #}
 }
 
 vabl_samps <- data.frame(vabl_samps, "vabl") %>%
