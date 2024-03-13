@@ -1,4 +1,4 @@
-library(fabldev)
+library(vabl)
 library(glue)
 
 k = as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
@@ -68,9 +68,9 @@ if(length(batch_sizes) == 1){
 hash <- combine_hash(hash_list = hash_list, n1, n2)
 
 ptm <- proc.time()
-out <- gibbs_efficient(hash, S=S, burn = burn)
+out <- fabl(hash, S=S, burn = burn)
 seconds <- (proc.time() - ptm)[3]
-result <- estimate_links(out$Z, n1)
+result <- estimate_links(out, hash)
 fabl_df <- data.frame(n1 = n1,
                       time = seconds,
                       iterations = S,
@@ -80,34 +80,32 @@ brl_hash_df <- NULL
 
 
 ptm <- proc.time()
-out <- brl_efficient_serge(hash, S=S, burn = burn)
+out <- BRL_hash(hash, S=S, burn = burn)
 seconds <- (proc.time() - ptm)[3]
-result <- estimate_links(out$Z, n1)
+result <- estimate_links(out, hash)
 brl_hash_df <- data.frame(n1 = n1,
                           time = seconds,
                           iterations = S,
-                          method = "BRLhash")
+                          method = "BRL_hash")
 
 ptm <- proc.time()
-out <- vi_efficient(hash)
+out <- vabl(hash)
 seconds <- (proc.time() - ptm)[3]
-result <- vi_estimate_links(out, hash, resolve = F)
+result <- estimate_links(out, hash, resolve = F)
 vabl_df <- data.frame(n1 = n1,
                       time = seconds,
                       iterations = out$t,
                       method = "vabl")
 
-svi_df <- NULL
-
 ptm <- proc.time()
-out <- svi_efficient(hash, B = n2/10, k = 1, tau = 1)
+out <- svabl(hash, B = n2/10, k = 1, tau = 1)
 seconds <- (proc.time() - ptm)[3]
-result <- vi_estimate_links(out, hash, resolve = F)
-svi_df <- data.frame(n1 = n1,
+result <- estimate_links(out, hash, resolve = F)
+svabl_df <- data.frame(n1 = n1,
                               time = seconds,
                               iterations = out$t,
                               method = "svabl")
 
 
-df <- rbind(brl_df, brl_hash_df, fabl_df, vabl_df, svi_df)
+df <- rbind(brl_df, brl_hash_df, fabl_df, vabl_df, svabl_df)
 saveRDS(df, glue("out/speed_big2/n_{stringr::str_pad(k, width = 2, pad = 0)}"))

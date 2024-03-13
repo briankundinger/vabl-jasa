@@ -20,7 +20,7 @@ fields <- c(2, 3, 8, 10, 11)
 types <- c("lv", "lv","bi", "bi", "bi")
 
 start <- tic()
-cd <- compare_records(df1, df2, flds = fields, types = types,
+cd <- compare_records(df1, df2, fields = fields, types = types,
                       breaks = c(0, .15))
 compare_time <- unname(toc(quiet = T)$toc - start)
 
@@ -51,7 +51,7 @@ brl_df <- data.frame(n1 = n1,
                      data = "febrl_4")
 
 ptm <- proc.time()
-chain <- BRL_hash(hash)
+chain <- BRL_hash(hash, S = 100)
 seconds <- proc.time() - ptm
 results <- estimate_links(chain, hash)
 eval <- evaluate_links(results$Z_hat, Z_true, n1)
@@ -69,20 +69,10 @@ brl_efficient_df <- data.frame(n1 = n1,
 
 
 ptm <- proc.time()
-chain <- fabl(hash)
+chain <- fabl(hash, S = 100)
 seconds <- proc.time() - ptm
 results <- estimate_links(chain, hash)
 eval <- evaluate_links(results$Z_hat, Z_true, n1)
-
-fabl_brian_df <- data.frame(n1 = n1,
-                            n2 = n2,
-                            recall = eval[1],
-                            precision = eval[2],
-                            f_measure = eval[3],
-                            iterations = 1000,
-                            time = seconds[3],
-                            method = "fabl",
-                            data = "febrl_4")
 
 fabl_df <- data.frame(n1 = n1,
                       n2 = n2,

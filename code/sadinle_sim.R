@@ -1,11 +1,10 @@
 library(RecordLinkage)
 library(dplyr)
 library(stringr)
-library(fabldev)
+library(vabl)
 library(purrr)
 library(readr)
 library(BRL)
-library(fastLink)
 
 taskID <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 i = taskID
@@ -82,40 +81,20 @@ for(j in seq_along(overlap_vals)){
     data.frame(.) %>%
     mutate(occup = as.numeric(occup))
 
-  out_fl <- fastLink(file1, file2, varnames = names(file1)[c(2, 3, 5, 6)],
-                     stringdist.match = names(file1)[c(2, 3)],
-                     partial.match = names(file1)[c(2, 3)],
-                     cut.a = 1, cut.p = .75, threshold.match = .5)
-
-  MakeZhat_from_fastlink <- function(id_1, id_2){
-    Zhat <- rep(0, n2)
-    Zhat[id_1] <- id_2
-    Zhat
-  }
-
-  Zhat <- MakeZhat_from_fastlink(out_fl$matches$inds.a, out_fl$matches$inds.b)
-
-  eval <- evaluate_links(Zhat, Ztrue, n1)
- fastlink_samps[j, ] <- c(eval, NA, NA, overlap)
-
-
-  cd <- compare_records(file1, file2, c(2, 3, 5, 6),
+  cd <- compare_records(file1, file2, fields = c(2, 3, 5, 6),
                         types = c("lv", "lv", "bi", "bi"))
-                        #breaks = c(0, .25))
-  cd[[1]] <- apply(cd[[1]], 2, as.numeric)
 
-
-  hash <- hash_comparisons(cd, all_patterns, algorithm = c("vabl", "fabl", "brl"))
+  hash <- hash_comparisons(cd, all_patterns = all_patterns)
 
   # vabl
   ptm <- proc.time()
-  out <- vi_efficient(hash, threshold, tmax)
+  out <- vabl(hash)
   elapsed <- proc.time() - ptm
-  result <- vi_estimate_links(out, hash)
+  result <- estimate_links(out, hash)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   vabl_samps[j, ] <- c(eval, NA, elapsed[3], overlap)
 
-  result <- vi_estimate_links(out, hash, lR = .1)
+  result <- estimate_links(out, hash, l_R = .1)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   RR <- sum(result$Z_hat == -1)/n2
   eval[1] <- sum(result$Z_hat == Ztrue & Ztrue == 0) / (sum(result$Z_hat == 0))
@@ -123,13 +102,13 @@ for(j in seq_along(overlap_vals)){
 
   #svi
   ptm <- proc.time()
-  out <- svi_efficient(hash, threshold, tmax, B = 100, k = 1)
+  out <- svabl(hash, threshold, tmax, B = 100, k = 1)
   elapsed <- proc.time() - ptm
-  result <- vi_estimate_links(out, hash)
+  result <- estimate_links(out, hash)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   svi_samps[j, ] <- c(eval, NA, elapsed[3], overlap)
 
-  result <- vi_estimate_links(out, hash, lR = .1)
+  result <- estimate_links(out, hash, l_R = .1)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   RR <- sum(result$Z_hat == -1)/n2
   eval[1] <- sum(result$Z_hat == Ztrue & Ztrue == 0) / (sum(result$Z_hat == 0))
@@ -137,13 +116,13 @@ for(j in seq_along(overlap_vals)){
 
   # fabl
   ptm <- proc.time()
-  Zchain <- gibbs_efficient(hash)
+  chain <- fabl(hash)
   elapsed <- proc.time() - ptm
-  result <- estimate_links(Zchain[[1]][, 101:1000], n1, 1, 1, 2, Inf)
+  result <- estimate_links(chain, n1, 1, 1, 2, Inf)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   fabl_samps[j, ] <- c(eval, NA, elapsed[3], overlap)
 
-  result <- estimate_links(Zchain[[1]][,101:1000], n1, 1, 1, 2, .1)
+  result <- estimate_links(chain, n1, 1, 1, 2, .1)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   RR <- sum(result$Z_hat == -1)/n2
   eval[1] <- sum(result$Z_hat == Ztrue & Ztrue == 0) / (sum(result$Z_hat == 0))
@@ -151,13 +130,13 @@ for(j in seq_along(overlap_vals)){
 
   # BRL Hash
   ptm <- proc.time()
-  Zchain <- brl_efficient_serge(hash)
+  chain <- BRL_hash(hash)
   elapsed <- proc.time() - ptm
-  result <- estimate_links(Zchain[[1]][, 101:1000], n1, 1, 1, 2, Inf)
+  result <- estimate_links(chain, hash, 1, 1, 2, Inf)
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   brl_hash_samps[j, ] <- c(eval, NA, elapsed[3], overlap)
 
-  result <- estimate_links(Zchain[[1]][, 101:1000], n1, 1, 1, 2, .1)
+  result <- estimate_links(chain, hash, 1, 1, 2, .1)
   RR <- sum(result$Z_hat == -1)/n2
   eval <- evaluate_links(result$Z_hat, Ztrue, n1)
   eval[1] <- sum(result$Z_hat == Ztrue & Ztrue == 0) / (sum(result$Z_hat == 0))
@@ -166,24 +145,24 @@ for(j in seq_along(overlap_vals)){
 
   #Sadinle 2017 Method
   ptm <- proc.time()
-  Zchain <- BRL::bipartiteGibbs(cd)[[1]]
+  chain <- BRL::bipartiteGibbs(cd)
   elapsed <- proc.time() - ptm
-  result <- estimate_links(Zchain[, 101:1000], n1, 1, 1, 2, Inf)
-  eval <- evaluate_links(result$Z_hat, Ztrue, n1)
+  Z_hat <- BRL::linkRecords(chain$Z[, 101:1000], n1, 1, 1, 2, Inf)
+  Z_hat[Z_hat > n1] <- 0
+  eval <- evaluate_links(Z_hat, Ztrue, n1)
   sad_samps[j, ] <- c(eval, NA, elapsed[3], overlap)
 
-  result <- estimate_links(Zchain[, 101:1000], n1, 1, 1, 2, .1)
-  RR <- sum(result$Z_hat == -1)/n2
-  eval <- evaluate_links(result$Z_hat, Ztrue, n1)
-  eval[1] <- sum(result$Z_hat == Ztrue & Ztrue == 0) / (sum(result$Z_hat == 0))
+  Z_hat <- BRL::linkRecords(chain$Z[, 101:1000], n1, 1, 1, 2, .1)
+  Z_hat[Z_hat > n1] <- 0
+  RR <- sum(Z_hat == -1)/n2
+  eval <- evaluate_links(Z_hat, Ztrue, n1)
+  eval[1] <- sum(Z_hat == Ztrue & Ztrue == 0) / (sum(Z_hat == 0))
   sad_partial_samps[j, ] <- c(eval, RR, elapsed[3], overlap)
 
   #  print(i)
   #}
 }
-fastlink_samps <- data.frame(fastlink_samps, "fastLink") %>%
-  unname() %>%
-  data.frame()
+
 vabl_samps <- data.frame(vabl_samps, "vabl") %>%
   unname() %>%
   data.frame()
@@ -221,8 +200,7 @@ sad_partial_samps <- data.frame(sad_partial_samps, "BRL_partial") %>%
   unname() %>%
   data.frame()
 
-result_df <- rbind(fastlink_samps,
-                   vabl_samps, vabl_partial_samps,
+result_df <- rbind(vabl_samps, vabl_partial_samps,
                    svi_samps, svi_partial_samps,
                    brl_hash_samps, brl_hash_partial_samps,
                    fabl_samps, fabl_partial_samps,

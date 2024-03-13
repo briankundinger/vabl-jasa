@@ -1,11 +1,10 @@
-library(fabldev)
+library(vabl)
 library(RecordLinkage)
 library(glue)
 library(tictoc)
 
-k = as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
-
-
+S <- 1000
+burn <- S * .1
 data <- RecordLinkage::RLdata10000 %>%
   mutate(unique_id = RecordLinkage::identity.RLdata10000)
 
@@ -48,7 +47,7 @@ fields <- c(1, 3, 5, 6, 7)
 types <- c("lv", "lv", "bi", "bi", "bi")
 
 start <- tic()
-cd <- compare_records(df1, df2, flds = fields, types = types,
+cd <- compare_records(df1, df2, fields = fields, types = types,
                       breaks = c(0, .15))
 compare_time <- unname(toc(quiet = T)$toc - start)
 
@@ -56,17 +55,18 @@ start <- tic()
 hash <- hash_comparisons(cd, all_patterns = F)
 hash_time <- unname(toc(quiet = T)$toc - start)
 
-time_df <- data.frame(batch = k,
+time_df <- data.frame(batch = 1,
                       data = "RLdata10000",
                       comparison = compare_time,
                       hash = hash_time)
-saveRDS(time_df, glue("out/case_study_time/RLdata10000_{k}"))
+saveRDS(time_df, glue("out/case_study_time/RLdata10000"))
 
 ptm <- proc.time()
 chain <- BRL::bipartiteGibbs(cd)
 seconds <- proc.time() - ptm
-results <- estimate_links(chain$Z, n1)
-eval <- evaluate_links(results$Z_hat, Z_true, n1)
+Z_hat <- BRL::linkRecords(chain$Z[, -(1:burn)], n1)
+Z_hat[Z_hat > n1] <- 0
+eval <- evaluate_links(Z_hat, Z_true, n1)
 
 brl_df <- data.frame(n1 = n1,
                      n2 = n2,

@@ -1,4 +1,4 @@
-library(fabldev)
+library(vabl)
 library(glue)
 
 k = as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
@@ -16,10 +16,12 @@ fast = F
 R <- NULL
 all_patterns <- T
 
-m <- c(.05, .95, .05, .95, .05, .95, .05, .95, .05, .95)
+m <- rep(c(.95, .05), 5)
 
-u <- c(.99, .01, .99, .01,
-       1 - 1/30, 1/30, 1 - 1/12, 1/12, 1 - 1/15, 1/15)
+# u <- c(.99, .01, .99, .01,
+#        1 - 1/30, 1/30, 1 - 1/12, 1/12, 1 - 1/15, 1/15)
+u <- c(.01, .99, .01, .99,
+       1/30, 1- 1/30, 1/12, 1 - 1/12, 1/15, 1 - 1/15)
 
 levels <- c(2, 2, 2, 2, 2)
 
@@ -72,27 +74,27 @@ hash <- combine_hash(hash_list = hash_list, n1, n2)
 brl_hash_df <- NULL
 
 ptm <- proc.time()
-out <- brl_efficient_serge(hash, S=S, burn = burn, reject_iter = 10)
+out <- BRL_hash(hash, S=S, burn = burn, reject_iter = 10)
 seconds <- (proc.time() - ptm)[3]
-result <- estimate_links(out$Z, n1)
+result <- estimate_links(out, hash)
 brl_hash_df <- data.frame(n1 = n1,
                       time = seconds,
                       iterations = S,
-                      method = "BRLhash")
+                      method = "BRL_hash")
 
 ptm <- proc.time()
-out <- gibbs_efficient(hash, S=S, burn = burn)
+out <- fabl(hash, S=S, burn = burn)
 seconds <- (proc.time() - ptm)[3]
-result <- estimate_links(out$Z, n1)
+result <- estimate_links(out, hash)
 fabl_df <- data.frame(n1 = n1,
                           time = seconds,
                           iterations = S,
                           method = "fabl")
 
 ptm <- proc.time()
-out <- vi_efficient(hash)
+out <- vabl(hash)
 seconds <- (proc.time() - ptm)[3]
-result <- vi_estimate_links(out, hash, resolve = F)
+result <- estimate_links(out, hash, resolve = F)
 vabl_df <- data.frame(n1 = n1,
                       time = seconds,
                       iterations = out$t,
@@ -107,15 +109,15 @@ vabl_df <- data.frame(n1 = n1,
 #                       iterations = out$t,
 #                       method = "vabl_no_init")
 
-svi_df <- NULL
-  ptm <- proc.time()
-  out <- svi_efficient(hash, B = min(n1/10, 1000), k = 1, tau = 1)
-  seconds <- (proc.time() - ptm)[3]
-  result <- vi_estimate_links(out, hash, resolve = F)
-  svi_df <- data.frame(n1 = n1,
-                                time = seconds,
-                                iterations = out$t,
-                                method = "svabl")
 
-df <- rbind(brl_df, brl_hash_df, fabl_df, vabl_df, svi_df)
+ptm <- proc.time()
+out <- svabl(hash, B = min(n1/10, 1000), k = 1, tau = 1)
+seconds <- (proc.time() - ptm)[3]
+result <- estimate_links(out, hash, resolve = F)
+svabl_df <- data.frame(n1 = n1,
+                       time = seconds,
+                       iterations = out$t,
+                       method = "svabl")
+
+df <- rbind(brl_df, brl_hash_df, fabl_df, vabl_df, svabl_df)
 saveRDS(df, glue("out/speed_big/n_{stringr::str_pad(k, width = 2, pad = 0)}"))
