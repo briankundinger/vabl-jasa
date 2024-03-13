@@ -22,7 +22,7 @@ Please see `code\` folder for R scripts to replicate experiments. The `scripts\`
 
 Due to data disclosure agreements, we have not provided data for some of the experiments. The following data sets can be obtained from the following parties:
 
-- `NLTCS`: please refer to the paper regarding the data usage agreement with the provider and documentation regarding how to obtain the data set for reproducibility.. 
+- `NLTCS`: please refer to the paper regarding the data usage agreement with the provider and documentation regarding how to obtain the data set for reproducibility.
 - `NCVR`: please contact authors regarding potential usage of this data set. 
 - `SV`: please refer to the paper regarding our data usage agreement with the data provider. 
 - `RLdata10000`: Available within the `RecordLinkage` package in CRAN. 
