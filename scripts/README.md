@@ -1,6 +1,6 @@
 # Instructions to Run Code on Cluster
 
-Be sure to install the `fabldev` package and set the working directory the main project directory. Below, we show the sequence of files to run for each experiment.
+Be sure to install the `vabl` package and set the working directory the main project directory. Below, we show the sequence of files to run for each experiment.
 
 ## RLdata10000
 
