@@ -2,7 +2,7 @@
 
 ## Installation and Setup
 
-Functions used to implement the proposed method are stored through the `vabl` package. Install this package by running `install.packages("vabl_0.0.0.9000.tar.gz", repos = NULL, type="source")` in the console.
+Functions used to implement the proposed method are stored through the `vabl` package. Install this package by running `install.packages("vabl.tar.gz", repos = NULL, type="source")` in the console.
 
 You may need to install additional packages for the scripts, which done by entering the following into the console. 
 
